@@ -44,7 +44,7 @@ package LexAnal{
             }
             if (isReservedWord(word)) {analyzeRes += Token(keyForResWord(word), row, column)}
             else {analyzeRes += Token(addIdentifier(word), row, column)}
-          } else if ('(' == line.charAt(i)){ //if find parentness
+          } else if ('(' == line.charAt(i)){ //if find parenthness
             i += 1
             if (i<line.length && '*' == line.charAt(i)){ //if this is comment
               i += 1
@@ -73,7 +73,7 @@ package LexAnal{
                 i += 3
               }
               else println("Error whitespace")
-            }
+            } else { analyzeRes += Token(4, row, i) }
           } else if (' ' == line.charAt(i)){
             i += 1
           } else if (';' == line.charAt(i)) {
@@ -87,6 +87,9 @@ package LexAnal{
             i += 1
           } else if ('.' == line.charAt(i)) {
             analyzeRes += Token(3, row, i)
+            i += 1
+          } else if (')' == line.charAt(i)) {
+            analyzeRes += Token(5, row, i)
             i += 1
           } else {
             println("Unresolved symbol: (" + row.toString+ ", " + column.toString + ")")
@@ -104,6 +107,7 @@ package LexAnal{
     def printToken(t: Token): Unit = {
       println("(" + t.row.toString + " " + t.column.toString + ") "+ t.key.toString)
     }
+
     def printAnalyzeRes(): Unit = {
       println("Token for row/column: ")
       analyzeRes.foreach(printToken)
