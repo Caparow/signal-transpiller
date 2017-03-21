@@ -1,0 +1,10 @@
+PROCEDURE LAB1 (V1, V2);
+LABEL: 123;
+LABEL: 32;
+BEGIN
+123: GOTO L1;
+32: RETURN;
+($IDKLFJSDKF$);
+(*ыаываываыв
+фівфів*);
+END
