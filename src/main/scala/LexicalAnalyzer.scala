@@ -6,7 +6,7 @@ import Tables._
 import scala.io.Source
 import scala.util.control.Breaks._
 
-package LexAnal{
+package LexicalAnalyzer{
 
   import scala.collection.mutable.ListBuffer
   import java.io.FileNotFoundException

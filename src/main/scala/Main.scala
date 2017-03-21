@@ -3,7 +3,7 @@
   */
 
 import Tables._
-import LexAnal._
+import LexicalAnalyzer._
 
 object Main extends App{
   val an = new LexicalAnalyzer("test.txt")
