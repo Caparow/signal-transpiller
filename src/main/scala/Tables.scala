@@ -4,10 +4,10 @@
 
 object Tables {
 
-  private val alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".toList
-  private val numbers = "1234567890".toList
-  private val dividers = ";:,.()".toList
-  private val reversedKeywordsTable = Map(
+  val alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".toList
+  val numbers = "1234567890".toList
+  val dividers = ";:,.()".toList
+  val reversedKeywordsTable = Map(
     401 -> "PROCEDURE",
     402 -> "BEGIN",
     403 -> "END",
@@ -15,8 +15,8 @@ object Tables {
     405 -> "GOTO",
     406 -> "RETURN")
 
-  private var constantsTable =  Map[Int, Int]()
-  private var identifierTable = Map[Int, String]()
+  var constantsTable =  Map[Int, Int]()
+  var identifierTable = Map[Int, String]()
 
   def isInAlphabet(ch: Char): Boolean = alphabet.contains(ch)
   def isDigit(ch: Char): Boolean = numbers.contains(ch)
@@ -25,6 +25,7 @@ object Tables {
   def isReservedWord(word: String): Boolean = reversedKeywordsTable.values.exists(_ == word)
   def isConstant(num: Int): Boolean = constantsTable.values.exists(_ == num)
   def isIdentifier(ident: String): Boolean = identifierTable.values.exists(_ == ident)
+
   def keyForResWord(value: String): Int = {
     val revMap = reversedKeywordsTable map { case (k, v) => (v, k) }
     revMap(value)
@@ -61,11 +62,12 @@ object Tables {
   }
 
   def printTables(): Unit = {
-    println("Reserved words:")
+    println("\n\tReserved words:")
     reversedKeywordsTable.foreach(print)
-    println("\nConstants:")
+    println("\n\n\tConstants:")
     constantsTable.foreach(print)
-    println("\nIdentifiers:")
+    println("\n\n\tIdentifiers:")
     identifierTable.foreach(print)
+    print("\n")
   }
 }

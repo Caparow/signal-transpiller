@@ -15,16 +15,17 @@ package LexicalAnalyzer{
 
   class LexicalAnalyzer(filename: String) {
     private var analyzeRes = ListBuffer[Token]()
-
+    private var file: String = ""
     try {
-      var row = 0
+      var row = 1
       var column = 0
-      val file = Source.fromFile(filename) getLines() mkString "\n"
+      var currColumn = 0
+      file = Source.fromFile(filename) getLines() mkString "\n"
       var i = 0
       while (i < file.length) {
         //if first symbol of the Token is digit
         if (isDigit(file.charAt(i))){
-          column = i
+          currColumn = i - column
           var num: String = ""
           num += file.charAt(i)
           i += 1
@@ -32,9 +33,9 @@ package LexicalAnalyzer{
             num += file.charAt(i)
             i += 1
           }
-          analyzeRes += Token(addConstant(num.toInt), row, i-column)
+          analyzeRes += Token(addConstant(num.toInt), row, currColumn)
         } else if (isInAlphabet(file.charAt(i))){ //if the first symbol of the Token is letter
-          column = i
+          currColumn = i - column
           var word: String = ""
           word += file.charAt(i)
           i+=1
@@ -42,56 +43,66 @@ package LexicalAnalyzer{
             word += file.charAt(i)
             i += 1
           }
-          if (isReservedWord(word)) {analyzeRes += Token(keyForResWord(word), row, i-column)}
-          else {analyzeRes += Token(addIdentifier(word), row, i-column)}
+          if (isReservedWord(word)) {analyzeRes += Token(keyForResWord(word), row, currColumn)}
+          else {analyzeRes += Token(addIdentifier(word), row, currColumn)}
         } else if ('(' == file.charAt(i)){ //if find parentheses
           i += 1
-          if (i<file.length && '*' == file.charAt(i)){ //if this is comment
+          if (i < file.length && '*' == file.charAt(i)){ //if this is comment
             i += 1
-            while (i-1 < file.length && '*' != file.charAt(i) && ')' != file.charAt(i+1)) {
-              if ('\n' == file.charAt(i))
-                row += 1
-              i += 1
+            breakable{
+              while (i+1 < file.length ) {
+                if ('*' != file.charAt(i) && ')' != file.charAt(i+1))
+                  break
+                if ('\n' == file.charAt(i))
+                  row += 1
+                i += 1
+              }
             }
-            i += 2
+            if (i+1 >= file.length)
+              println("EOF found in comment block")
+            i += 1
           } else if (i<file.length && '$' == file.charAt(i)){ //if this is assembly file declaration
             i += 1
-            column = i
+            currColumn = i - column
             if (i<file.length && ' ' == file.charAt(i)){
               i += 1
+              analyzeRes += Token(6, row, currColumn-2)
               if (isInAlphabet(file.charAt(i))){
                 var ident: String = ""
                 breakable{
-                  while (i-2 < file.length && '$' != file.charAt(i+1) && ')' != file.charAt(i+2) && ' ' != file.charAt(i)){
+                  while (i+2 < file.length && '$' != file.charAt(i+1) && ')' != file.charAt(i+2) && ' ' != file.charAt(i)){
                     if (isInAlphabet(file.charAt(i)) || isDigit(file.charAt(i)))
                       ident += file.charAt(i)
                     else {
-                      println("Assembly file identifier error: invalid ident. (" + row + ", " + (i-column) + ")")
+                      println("Assembly file identifier error: invalid ident. (" + row + ", " + currColumn + ")")
                       i = file.length
                       break()
                     }
                     i += 1
                   }
                 }
-                analyzeRes += Token(addIdentifier(ident), row, i-column)
+                analyzeRes += Token(addIdentifier(ident), row, currColumn)
+                analyzeRes += Token(7, row, i-column)
               } else {
-                println("Assembly file identifier error: invalid ident. (" + row + ", " + (i+2 - column) + ")")
+                println("Assembly file identifier error: invalid ident. (" + row + ", " + currColumn + ")")
                 i = file.length
               }
               i += 3
             } else {
-              println("Assembly file declaration error: no whitespace (" + row + ", " + (i+2 - column) + ")")
+              println("Assembly file declaration error: no whitespace (" + row + ", " + currColumn + ")")
               i = file.length
             }
-          } else { analyzeRes += Token(4, row, i) }
-        } else if (isDivider(file.charAt(i))) {
-          analyzeRes += Token(getDividerIndex(file.charAt(i)), row, i-column)
+          } else { analyzeRes += Token(4, row, i - column) } // if there is only parentheses
+        } else if (isDivider(file.charAt(i))) { // if divider founded
+          currColumn = i - column
+          analyzeRes += Token(getDividerIndex(file.charAt(i)), row, currColumn)
           i += 1
-        } else if (' ' == file.charAt(i)){
+        } else if (' ' == file.charAt(i)) { // increment *i*
           i += 1
-        } else if ('\n' == file.charAt(i)) {
+        } else if ('\n' == file.charAt(i)) { // if EOL founded
           i += 1
           row += 1
+          column = i
         } else {
           println("Unresolved symbol: (" + row + ", " + (i-column) + ")")
           i = file.length
@@ -104,8 +115,10 @@ package LexicalAnalyzer{
     def getAnalyzeRes: List[Token] = analyzeRes.toList
 
     def printToken(t: Token): Unit = {
-      println("(" + t.row.toString + " " + t.column.toString + ") "+ t.key.toString)
+      println("(" + t.row.toString + " " + t.column.toString + ")\t"+ t.key.toString)
     }
+
+    def getFile: String = file
 
     def printAnalyzeRes(): Unit = {
       println("Token for row/column: ")
