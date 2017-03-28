@@ -58,8 +58,11 @@ package LexicalAnalyzer{
                 i += 1
               }
             }
-            if (i+1 >= file.length)
+            if (i+1 >= file.length){
               println("EOF found in comment block")
+              Error = true
+            }
+
             i += 1
           } else if (i<file.length && '$' == file.charAt(i)){ //if this is assembly file declaration
             i += 1
@@ -74,6 +77,7 @@ package LexicalAnalyzer{
                     if (isInAlphabet(file.charAt(i)) || isDigit(file.charAt(i)))
                       ident += file.charAt(i)
                     else {
+                      Error = true
                       println("Assembly file identifier error: invalid ident. (" + row + ", " + currColumn + ")")
                       i = file.length
                       break()
@@ -84,11 +88,13 @@ package LexicalAnalyzer{
                 analyzeRes += Token(addIdentifier(ident), row, currColumn)
                 analyzeRes += Token(7, row, i-column)
               } else {
+                Error = true
                 println("Assembly file identifier error: invalid ident. (" + row + ", " + currColumn + ")")
                 i = file.length
               }
               i += 3
             } else {
+              Error = true
               println("Assembly file declaration error: no whitespace (" + row + ", " + currColumn + ")")
               i = file.length
             }
@@ -104,12 +110,14 @@ package LexicalAnalyzer{
           row += 1
           column = i
         } else {
+          Error = true
           println("Unresolved symbol: (" + row + ", " + (i-column) + ")")
           i = file.length
         }
       }
     } catch {
-      case ex: FileNotFoundException => println ("Missing file exception")
+      case ex: FileNotFoundException => Error = true
+        println ("Missing file exception")
     }
 
     def getAnalyzeRes: List[Token] = analyzeRes.toList

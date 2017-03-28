@@ -3,7 +3,7 @@
   */
 
 object Tables {
-
+  var Error = false
   val alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".toList
   val numbers = "1234567890".toList
   val dividers = ";:,.()".toList
@@ -62,12 +62,16 @@ object Tables {
   }
 
   def printTables(): Unit = {
-    println("\n\tReserved words:")
-    reversedKeywordsTable.foreach(print)
-    println("\n\n\tConstants:")
-    constantsTable.foreach(print)
-    println("\n\n\tIdentifiers:")
-    identifierTable.foreach(print)
-    print("\n")
+    def printMap(m: ((Any, Any))){print("|\t"+m._1+"\t\t"+m._2+"\n")}
+    println("_"*50+"\n\t\tReserved words:\n"+"_"*50+"\n")
+    println("|\tKEY\t\tVALUE\n")
+    reversedKeywordsTable.foreach(printMap)
+    println("_"*50+"\n\t\tConstants:\n"+"_"*50+"\n")
+    println("|\tKEY\t\tVALUE\n")
+    constantsTable.foreach(printMap)
+    println("_"*50+"\n\t\tIdentifiers:\n"+"_"*50+"\n")
+    println("|\tKEY\t\tVALUE\n")
+    identifierTable.foreach(printMap)
+    println("_"*50)
   }
 }

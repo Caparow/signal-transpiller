@@ -20,13 +20,18 @@ package SyntaxAnalyzer{
     val declarations: List[Int] = dec
     val statements: List[SingleStatement] = stat
   }
-  case class LabelStatement(l: Int) extends SingleStatement{val label: Int = l}
+  case class LabelStatement(l: Int, stat: SingleStatement) extends SingleStatement{
+    val label: Int = l
+    val statement: SingleStatement = stat
+  }
   case class GotoStatement(l: Int) extends SingleStatement{
     val str: String = "GOTO"
     val label: Int = l
   }
   case class ReturnStatement() extends SingleStatement{ val str: String = "RETURN" }
   case class AssemblyFileStatement(id: Int) extends SingleStatement{ val assemblyFileIdent: Int = id }
+  case class DefaultStatement() extends SingleStatement {}
+  case class SemicolonStatement() extends SingleStatement {}
 
   class SyntaxAnalyzer(tokens: List[Token]) {
     private var i = 0
@@ -34,17 +39,19 @@ package SyntaxAnalyzer{
     private var currentToken: Token = Token(0,0,0)
 
     def getToken: Token = {
-      if(i-1 < tokens.length) {
+      if(i < tokens.length) {
         this.i += 1
         currentToken = tokens(i-1)
         currentToken
       } else {
         println("GETTING TOKEN ERROR")
-        Token(0,0,0)
+        currentToken = Token(-1,0,0)
+        currentToken
       }
     }
 
     def ERR(token: Token, msg: String): Unit = {
+      Error = true
       println("Error found in <" + token.row
         + ", " + token.column + ">" + " token: " + token.key + ":\n\t" + msg)
     }
@@ -53,19 +60,26 @@ package SyntaxAnalyzer{
       var paramList = ListBuffer[Int]()
       var ident: Int = 0
       getToken
+      //procedure
       if (currentToken.key == 401){
         getToken
+        //procedure ident
         if (identifierTable.getOrElse(currentToken.key, 0 ) != 0){
           ident = currentToken.key
+          //parentheses
           if(getToken.key == 4){
             getToken
-            while (currentToken. key != 5 && currentToken.key != 0){
-              if (currentToken.key == 2)
-                getToken
-              else{
+            while (currentToken.key != 5 && currentToken.key != 0){
+              //","
+              if (identifierTable.getOrElse(currentToken.key, 0) != 0) {
                 paramList += currentToken.key
                 getToken
-              }
+                if (currentToken.key == 2){
+                  getToken
+                  if(currentToken.key == 5)
+                    ERR(currentToken, "Identifier expected")
+                } else if (currentToken.key != 5) ERR(currentToken, "',' expected")
+              } else getToken
             }
             if (currentToken.key == 5){
               getToken
@@ -109,6 +123,18 @@ package SyntaxAnalyzer{
       AssemblyFileStatement(0)
     }
 
+    def labelStat: LabelStatement ={
+      val ident = currentToken.key
+      var stat: SingleStatement = ReturnStatement()
+      getToken
+      if(currentToken.key == 1)
+        stat = statement
+      else ERR(currentToken, "':' expected")
+      if (currentToken.key != 0)
+        ERR(currentToken, "';' found")
+      LabelStatement(ident, stat)
+    }
+
     def block: Block = {
       var declarations = ListBuffer[Int]()
       var statements = ListBuffer[SingleStatement]()
@@ -117,23 +143,32 @@ package SyntaxAnalyzer{
       //read declarations if exists
       if (currentToken.key == 404){
         getToken
-        while (currentToken.key != 0) {
-          if (constantsTable.getOrElse(currentToken.key, 0) != 0 || currentToken.key == 2) {
-            if (currentToken.key == 2)
+        while (currentToken.key != 0 && currentToken.key != -1) {
+          if (constantsTable.getOrElse(currentToken.key, 0) != 0) {
+            declarations += currentToken.key
+            getToken
+            if (currentToken.key == 2){
               getToken
-            else {
-              declarations += currentToken.key
-              getToken
-            }
-          } else ERR(currentToken, "Constant expected")
+              if (currentToken.key < 500)
+                ERR(currentToken, "Constant expected")
+            } else if (currentToken.key != 0) ERR(currentToken, "',' expected")
+          } else {
+            getToken
+          }
         }
+        if (currentToken.key != 0)
+          ERR(currentToken, "';' expected")
         getToken
       }
       //if BEGIN found
       if (currentToken.key == 402){
         // while not found END
-        while(currentToken.key != 403)
-          statements ++= statement
+        var stat: SingleStatement = DefaultStatement()
+        while(currentToken.key != -1 && currentToken.key != 403){
+          stat = statement
+          if (stat != SemicolonStatement())
+            statements += stat
+        }
         if (currentToken.key == 403)
           bl
         else ERR(currentToken, "'END' expected")
@@ -141,54 +176,51 @@ package SyntaxAnalyzer{
       bl
     }
 
-    def statement: List[SingleStatement] ={
-      var stat = ListBuffer[SingleStatement]()
+    def statement: SingleStatement ={
       getToken
       //if GOTO found
       if (currentToken.key == 405){
-        stat += gotoStat
+        return gotoStat
         //If RETURN found
       } else if (currentToken.key == 406){
-        stat += returnStat
+        return returnStat
         //If Assembly File Ident found
       } else if (currentToken.key == 6){
-        stat += assStat
+        return assStat
         //if label found
       } else if (constantsTable.getOrElse(currentToken.key, 0) != 0){
-        stat += LabelStatement(currentToken.key)
-        getToken
-        if(currentToken.key == 1)
-          stat ++= statement
-        else ERR(currentToken, "':' expected")
-        if (currentToken.key != 0)
-          ERR(currentToken, "';' found")
+        return labelStat
         //if single ; found
-      } else if (currentToken.key == 0)
-        return stat.toList
-      else if(currentToken.key == 403)
-        return stat.toList
+      } else if (currentToken.key == 0 ||
+                 currentToken.key == 403 ||
+                 currentToken.key == -1)
+        return SemicolonStatement()
       else ERR(currentToken, "Unresolved token found")
-      stat.toList
+      DefaultStatement()
     }
 
     def printTree(): Unit ={
-      def printId(i: Int){print(i + " ")}
-      def caseStatement(st: SingleStatement): String = st match{
-          case GotoStatement(l) => "GOTO statement: " + l
-          case ReturnStatement() => "RETURN statement"
-          case AssemblyFileStatement(l) => "ASSEMBLY FILE: " + l
-          case LabelStatement(l) => "LABEL: " + l
+      def printId(i: Int){print(identifierTable(i) + " ")}
+      def printDec(i: Int){print(constantsTable(i) + " ")}
+      def caseStatement(st: SingleStatement, level: Int): String = st match{
+          case GotoStatement(l) => "|---GOTO " + constantsTable(l)
+          case ReturnStatement() => "|---RETURN"
+          case AssemblyFileStatement(l) => "|---ASSEMBLY FILE: *" + identifierTable(l) + "*"
+          case LabelStatement(l,s) => "|---" + constantsTable(l) + ":\n"+"|---"*level + caseStatement(s, level + 1)
+          case DefaultStatement() => "ERROR IN STATEMENTS: statement doesn't initialized."
           case _ => "STATEMENT ERROR"
       }
-      def printStatement(st: SingleStatement){println(caseStatement(st))}
+      def printStatement(st: SingleStatement){println(caseStatement(st, 1))}
 
       print("\n"+"*"*50 + "\n\tSYNTAX TREE\n" + "*"*50)
-      print("\n\nProgram: " + tree.ident + " parameters: ")
+      print("\n\nPROCEDURE " + identifierTable(tree.ident) + "(")
       tree.parametersList.foreach(printId)
-      print("\n\nLabels declarations: ")
-      tree.block.declarations.foreach(printId)
-      println("\n\nStatements: ")
+      print(")\n")
+      print("|---LABEL ")
+      tree.block.declarations.foreach(printDec)
+      println("\nBEGIN")
       tree.block.statements.foreach(printStatement)
+      println("END")
     }
   }
 }
