@@ -51,7 +51,7 @@ package LexicalAnalyzer{
             i += 1
             breakable{
               while (i+1 < file.length ) {
-                if ('*' != file.charAt(i) && ')' != file.charAt(i+1))
+                if ('*' == file.charAt(i) && ')' == file.charAt(i+1))
                   break
                 if ('\n' == file.charAt(i))
                   row += 1
@@ -62,8 +62,7 @@ package LexicalAnalyzer{
               println("EOF found in comment block")
               Error = true
             }
-
-            i += 1
+            i += 2
           } else if (i<file.length && '$' == file.charAt(i)){ //if this is assembly file declaration
             i += 1
             currColumn = i - column
@@ -73,7 +72,8 @@ package LexicalAnalyzer{
               if (isInAlphabet(file.charAt(i))){
                 var ident: String = ""
                 breakable{
-                  while (i+2 < file.length && '$' != file.charAt(i+1) && ')' != file.charAt(i+2) && ' ' != file.charAt(i)){
+                  while (i+2 < file.length &&
+                    " $)" != file.charAt(i).toString + file.charAt(i+1).toString + file.charAt(i+2).toString){
                     if (isInAlphabet(file.charAt(i)) || isDigit(file.charAt(i)))
                       ident += file.charAt(i)
                     else {
@@ -85,14 +85,19 @@ package LexicalAnalyzer{
                     i += 1
                   }
                 }
-                analyzeRes += Token(addIdentifier(ident), row, currColumn)
-                analyzeRes += Token(7, row, i-column)
+                if(!Error && " $)" != file.charAt(i).toString + file.charAt(i+1).toString + file.charAt(i+2).toString){
+                  Error = true
+                  println("Assembly file identifier error: ' $)' expected. (" + row + ", " + currColumn + ")")
+                } else {
+                  analyzeRes += Token(addIdentifier(ident), row, currColumn)
+                  analyzeRes += Token(7, row, i-column)
+                  i += 3
+                }
               } else {
                 Error = true
                 println("Assembly file identifier error: invalid ident. (" + row + ", " + currColumn + ")")
                 i = file.length
               }
-              i += 3
             } else {
               Error = true
               println("Assembly file declaration error: no whitespace (" + row + ", " + currColumn + ")")
@@ -123,14 +128,18 @@ package LexicalAnalyzer{
     def getAnalyzeRes: List[Token] = analyzeRes.toList
 
     def printToken(t: Token): Unit = {
-      println("(" + t.row.toString + " " + t.column.toString + ")\t"+ t.key.toString)
+      println("<" + t.row.toString + ", " + t.column.toString +
+        ">\t\t"+ t.key.toString+":       " + findInTables(t.key))
     }
 
     def getFile: String = file
 
     def printAnalyzeRes(): Unit = {
-      println("Token for row/column: ")
+      println("*"*50)
+      println("\t\tTOKENS FOR ROW\\COLUMN")
+      println("*"*50)
       analyzeRes.foreach(printToken)
+      println("\n"+"*"*50)
     }
   }
 }

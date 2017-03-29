@@ -9,11 +9,10 @@ import SyntaxAnalyzer._
 object Main extends App{
   val an = new LexicalAnalyzer("test.txt")
   if (!Error){
-    //an.printAnalyzeRes()
+    an.printAnalyzeRes()
     printTables()
     val sa = new SyntaxAnalyzer(an.getAnalyzeRes)
     if (!Error){
-      print(sa.tree)
       sa.printTree
     }
   }

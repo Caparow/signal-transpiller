@@ -61,6 +61,19 @@ object Tables {
     }
   }
 
+  def findInTables(i: Int): String = {
+    if(reversedKeywordsTable.getOrElse(i, 0) != 0)
+      return " "+reversedKeywordsTable(i)
+    if(constantsTable.getOrElse(i, 0) != 0)
+      return " "+constantsTable(i).toString
+    if(identifierTable.getOrElse(i, 0) != 0)
+      return identifierTable(i)
+    if (i<6) return "   "+dividers(i).toString
+    if (i == 6) return "   ($ "
+    if (i == 7) return "    $)"
+    "Broken key"
+  }
+
   def printTables(): Unit = {
     def printMap(m: ((Any, Any))){print("|\t"+m._1+"\t\t"+m._2+"\n")}
     println("_"*50+"\n\t\tReserved words:\n"+"_"*50+"\n")
