@@ -8,10 +8,10 @@ import scala.collection.mutable.ListBuffer
 package SyntaxAnalyzer{
 
   trait SingleStatement
-  case class Program(ident: Int, paramList: List[Int], bl: Block){
+  case class Program(ident: Int, paramList: List[VarType], bl: Block){
     val str: String = "PROCEDURE"
     val procedureIdent: Int = ident
-    val parametersList: List[Int] = paramList
+    val parametersList: List[VarType] = paramList
     val block: Block = bl
   }
   case class Block(dec: List[Int], stat: List[SingleStatement]){
@@ -29,9 +29,10 @@ package SyntaxAnalyzer{
     val label: Int = l
   }
   case class ReturnStatement() extends SingleStatement{ val str: String = "RETURN" }
-  case class AssemblyFileStatement(id: Int) extends SingleStatement{ val assemblyFileIdent: Int = id }
-  case class DefaultStatement() extends SingleStatement {}
-  case class SemicolonStatement() extends SingleStatement {}
+  case class AssemblyFileStatement(assemblyFileIdent: Int) extends SingleStatement
+  case class DefaultStatement() extends SingleStatement
+  case class SemicolonStatement() extends SingleStatement
+  case class VarType(vIdent: Int, vType: Int)
 
   class SyntaxAnalyzer(tokens: List[Token]) {
     private var i = 0
@@ -57,8 +58,9 @@ package SyntaxAnalyzer{
     }
 
     def program(): Program ={
-      var paramList = ListBuffer[Int]()
+      var paramList = ListBuffer[VarType]()
       var ident: Int = 0
+      var identType: Int = 0
       //procedure
       if (getToken.key == 401){
         //procedure ident
@@ -66,14 +68,27 @@ package SyntaxAnalyzer{
           ident = currentToken.key
           //parentheses
           if(getToken.key == 4){
-            while (getToken.key != 5 && currentToken.key != 0){
+            while (currentToken.key != 5 && currentToken.key != 0){
               //","
               if (identifierTable.getOrElse(currentToken.key, 0) != 0) {
-                paramList += currentToken.key
-                if (getToken.key == 2){
-                  if(getToken.key == 5)
-                    ERR(currentToken, "Identifier expected")
-                } else if (currentToken.key != 5) ERR(currentToken, "',' expected")
+                ident = currentToken.key
+                getToken.key match {
+                  case key if key == 1 =>
+                    if (identifierTable.contains(getToken.key))
+                      identType = currentToken.key
+                    else ERR(currentToken, "Type excepted")
+                    if (getToken.key == 2){
+                      if(getToken.key == 5)
+                        ERR(currentToken, "Identifier expected")
+                    } else if (currentToken.key != 5) ERR(currentToken, "',' expected")
+                  case key if key == 2 =>
+                    identType = 0
+                    if(getToken.key == 5)
+                      ERR(currentToken, "Identifier expected")
+                  case key if key == 5 => identType = 0
+                  case _ => ERR(currentToken, "',' expected")
+                }
+                paramList += VarType(ident, identType)
               } else getToken
             }
             if (currentToken.key == 5){
@@ -126,8 +141,8 @@ package SyntaxAnalyzer{
 
     def declarationsBlock: List[Int] = {
       var declarations = ListBuffer[Int]()
-      while (getToken.key != 0 && currentToken.key != -1) {
-        if (constantsTable.getOrElse(currentToken.key, 0) != 0) {
+      while (currentToken.key != 0 && currentToken.key != -1) {
+        if (constantsTable.contains(currentToken.key)) {
           declarations += currentToken.key
           if (getToken.key == 2){
             if (constantsTable.getOrElse(getToken.key, 0) == 0)
@@ -186,6 +201,12 @@ package SyntaxAnalyzer{
 
     def printTree(): Unit ={
       def printId(i: Int){print(findInTables(i) + " ")}
+      def printVar(v: VarType){
+        print(findInTables(v.vIdent))
+        if (v.vType != 0)
+          print(": " + findInTables(v.vType) + ", ")
+        else
+          print(", ")}
       def caseStatement(st: SingleStatement, level: Int): String = st match{
           case GotoStatement(l) => "|---GOTO " + constantsTable(l)
           case ReturnStatement() => "|---RETURN"
@@ -198,7 +219,7 @@ package SyntaxAnalyzer{
 
       print("\n"+"*"*50 + "\n\t\tSYNTAX TREE\n" + "*"*50)
       print("\n\nPROCEDURE " + identifierTable(tree.ident) + "(")
-      tree.parametersList.foreach(printId)
+      tree.parametersList.foreach(printVar)
       print(")\n")
       if(tree.block.declarations.nonEmpty){
         print("|---LABEL ")

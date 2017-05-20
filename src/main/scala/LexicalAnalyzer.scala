@@ -69,12 +69,12 @@ package LexicalAnalyzer{
             if (i<file.length && ' ' == file.charAt(i)){
               i += 1
               analyzeRes += Token(6, row, currColumn-2)
-              if (isInAlphabet(file.charAt(i))){
+              if (isInAlphabet(file.charAt(i).toUpper)){
                 var ident: String = ""
                 breakable{
                   while (i+2 < file.length &&
                     " $)" != file.charAt(i).toString + file.charAt(i+1).toString + file.charAt(i+2).toString){
-                    if (isInAlphabet(file.charAt(i)) || isDigit(file.charAt(i)))
+                    if (isInAlphabet(file.charAt(i).toUpper) || isDigit(file.charAt(i)) || file.charAt(i) == '.')
                       ident += file.charAt(i)
                     else {
                       Error = true
